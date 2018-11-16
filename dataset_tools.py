@@ -240,17 +240,6 @@ def create_celeba_hq(celeba_hq_dir, celeba_dir, delta_dir, num_threads=4, num_ta
         # assert md5.hexdigest() == fields['final_md5'][idx]  # disable md5 verify
         return idx, img
 
-    # for idx in range(0, len(fields['idx'])):
-    #     idx, img = process_func(idx)
-    #     img = np.minimum(np.maximum(img, 0), 255)
-    #     img = np.transpose(img, (1, 2, 0)).astype(np.uint8)[:,:,::-1]
-    #     cv2.imwrite(str(idx) + '.jpg', img)
-    #
-    #     # skimage.io.imsave(str(idx) + '.png', img)
-    #
-    #     print(idx)
-
-
     with ThreadPool(num_threads) as pool:
         print('%d / %d\r' % (0, len(fields['idx'])))
         for idx, img in pool.process_items_concurrently(fields['idx'], process_func=process_func,
