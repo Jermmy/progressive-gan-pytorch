@@ -1,8 +1,6 @@
 import os
 import sys
-import io
 import glob
-import pickle
 import argparse
 import threading
 import queue
@@ -11,7 +9,6 @@ import numpy as np
 import scipy.ndimage
 import PIL.Image
 import cv2
-import skimage.io
 
 # ----------------------------------------------------------------------------
 
@@ -119,7 +116,7 @@ def create_celeba_hq(celeba_hq_dir, celeba_dir, delta_dir, num_threads=4, num_ta
         landmarks = np.float32(landmarks).reshape(-1, 5, 2)
 
     print('Loading CelebA-HQ deltas from %s' % delta_dir)
-    import hashlib
+    # import hashlib
     import bz2
     import zipfile
     import base64
