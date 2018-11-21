@@ -3,6 +3,21 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 
 
+def init_params(modules):
+    for m in modules:
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out')
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.BatchNorm2d):
+            nn.init.constant_(m.weight, 1)
+            nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.Linear):
+            nn.init.normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
+
 class PixelNormLayer(nn.Module):
     """
     Pixelwise feature vector normalization.
@@ -53,3 +68,15 @@ class LayerNormLayer(nn.Module):
     def __repr__(self):
         param_str = '(incoming = %s, eps = %s)' % (self.incoming.__class__.__name__, self.eps)
         return self.__class__.__name__ + param_str
+
+
+class ToRgbLayer(nn.Module):
+
+    def __init__(self, in_channels, out_channels):
+        super(ToRgbLayer, self).__init__()
+        self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0)]
+        self.layers = nn.Sequential(self.layers)
+        init_params(self.layers)
+
+    def forward(self, x):
+        return self.layers(x)
