@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
 
@@ -72,11 +73,66 @@ class LayerNormLayer(nn.Module):
 
 class ToRgbLayer(nn.Module):
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels=3):
         super(ToRgbLayer, self).__init__()
         self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0)]
-        self.layers = nn.Sequential(self.layers)
+        # self.layers += [nn.LeakyReLU(0.2)]
+        self.layers = nn.Sequential(*self.layers)
         init_params(self.layers)
 
     def forward(self, x):
         return self.layers(x)
+
+
+class GBaseBlock(nn.Module):
+
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, upsample=True):
+        super(GBaseBlock, self).__init__()
+        self.upsample = upsample
+        self.layers = [nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)]
+        self.layers += [nn.LeakyReLU(0.2)]
+        self.layers += [nn.Conv2d(out_channels, out_channels, 3, stride=1, padding=1)]
+        self.layers += [nn.LeakyReLU(0.2)]
+        self.layers = nn.Sequential(*self.layers)
+
+        init_params(self.layers)
+
+    def forward(self, x):
+        if self.upsample:
+            height, width = x.shape[2], x.shape[3]
+            x = F.interpolate(x, size=(height * 2, width * 2), mode='nearest')
+        return self.layers(x)
+
+
+class FromRgbLayer(nn.Module):
+
+    def __init__(self, out_channels, in_channels=3):
+        super(FromRgbLayer, self).__init__()
+        self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)]
+        self.layers += [nn.LeakyReLU(0.2)]
+        self.layers = nn.Sequential(*self.layers)
+        init_params(self.layers)
+
+    def forward(self, x):
+        return self.layers(x)
+
+
+class DBaseBlock(nn.Module):
+
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, downsample=True):
+        super(DBaseBlock, self).__init__()
+        self.downsample = downsample
+        self.layers = []
+        self.layers += [nn.Conv2d(in_channels, in_channels, 3, padding=1)]
+        self.layers += [nn.LeakyReLU(0.2)]
+        self.layers += [nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)]
+        self.layers += [nn.LeakyReLU(0.2)]
+        self.layers = nn.Sequential(*self.layers)
+
+        init_params(self.layers)
+
+    def forward(self, x):
+        x = self.layers(x)
+        if self.downsample:
+            x = F.avg_pool2d(x, kernel_size=2, stride=2)
+        return x

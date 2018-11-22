@@ -1,6 +1,7 @@
 import os
 from os.path import join
 import cv2
+import numpy as np
 
 import torch.utils.data as data
 
@@ -13,7 +14,7 @@ class TrainDataset(data.Dataset):
         self.files = []
         with open(train_file, 'r') as f:
             for line in f.readlines():
-                self.files += [line]
+                self.files += [line.strip()]
         self.transform = transform
 
     def __len__(self):
@@ -26,5 +27,9 @@ class TrainDataset(data.Dataset):
         if self.transform:
             image = self.transform(image)
 
-        return image
+        noise = np.random.randn(512, 1, 1).astype(np.float)
+
+        sample = {'image': image, 'noise': noise}
+
+        return sample
 
