@@ -82,8 +82,12 @@ def train(config):
             optimD.step()
 
             if i % 500 == 0:
-                print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f' %(epoch, config.epochs,
-                     i, len(train_loader), gan_loss.item(), dis_loss.item()))
+                if config.gan_type == 'vanilla':
+                    print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f' %(epoch, config.epochs,
+                         i, len(train_loader), gan_loss.item(), dis_loss.item()))
+                elif config.gan_type == 'wgan-gp':
+                    print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f | gp loss: %.4f' %(epoch, config.epochs,
+                         i, len(train_loader), gan_loss.item(), dis_loss.item(), gp_loss.item()))
 
                 fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
                 real_images = real_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
@@ -93,10 +97,10 @@ def train(config):
                             result_file=join(config.result_path, "real-epoch-%d-step-%d.png" % (epoch, i)))
 
                 writer.add_scalars('loss', {'G loss': gan_loss.item(),
-                                            'D loss': dis_loss.item()})
+                                            'D loss': dis_loss.item()}, (epoch-1)*len(train_loader) + i)
 
                 if config.gan_type == 'wgan-gp':
-                    writer.add_scalars('loss', {'gp': gp_loss.item()})
+                    writer.add_scalars('loss', {'gp': gp_loss.item()}, (epoch-1)*len(train_loader) + i)
 
         if epoch % 1 == 0:
             generator.save_model(join(config.ckpt_path, 'G-epoch-%d.pkl' % epoch))

@@ -254,6 +254,7 @@ def create_celeba_hq(celeba_hq_dir, celeba_dir, delta_dir, num_threads=4, num_ta
 
 def split_dataset(celeba_hq_dir, data_dir):
     '''
+    Split the whole dataset into train and test part
     :param celeba_hq_dir: Directory of Celeba-HQ images
     :param data_dir: Directory to save train and test file list
     :return:
@@ -274,6 +275,26 @@ def split_dataset(celeba_hq_dir, data_dir):
 
 # -----------------------------------------------------------------------------
 
+def resize_dataset(celeba_hq_dir, dest_dir, resolution):
+    '''
+    Resize the 1024 images into desired resolution and save images into dest_dir
+    :param celeba_hq_dir:
+    :param dest_dir:
+    :param resolution:
+    :return:
+    '''
+    files = [f for f in os.listdir(celeba_hq_dir) if f.endswith('png')]
+
+    if not os.path.exists(dest_dir):
+        os.mkdir(dest_dir)
+
+    for f in files:
+        image = cv2.imread(os.path.join(celeba_hq_dir, f))
+        image = cv2.resize(image, (resolution, resolution), interpolation=cv2.INTER_AREA)
+        cv2.imwrite(os.path.join(dest_dir, f), image)
+        print("Process %s" % (os.path.join(celeba_hq_dir, f)))
+
+# -----------------------------------------------------------------------------
 
 def execute_cmdline(argv):
     prog = argv[0]
@@ -300,6 +321,12 @@ def execute_cmdline(argv):
                      'split_dataset Celeba-HQ/ data/')
     p.add_argument('celeba_hq_dir', help='Directory to read CelebA-HQ data from')
     p.add_argument('data_dir', help='Directory to write train and test file list')
+
+    p = add_command('resize_dataset', 'Resize original high quality dataset.',
+                    'resize_dataset Celeba-HQ/ Celeba-128x128/')
+    p.add_argument('celeba_hq_dir', help='Directory to read CelebA-HQ data from')
+    p.add_argument('dest_dir', help='Directory to save images after resizing')
+    p.add_argument('resolution', type=int, help='Desired resolution')
 
     args = parser.parse_args(argv[1:])
     func = globals()[args.command]
