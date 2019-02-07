@@ -66,9 +66,8 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
 
-    def __init__(self, resolution=1024, gan_type='vanilla'):
+    def __init__(self, resolution=1024):
         super(Discriminator, self).__init__()
-        self.gan_type = gan_type
         self.resolution = resolution
         self.R = int(np.log2(resolution)) # resolution level
         assert resolution == 2 ** self.R and resolution <= 1024
@@ -86,15 +85,8 @@ class Discriminator(nn.Module):
             self.fromRgbLayers.append(FromRgbLayer(ic))
 
         self.baseBlocks.append(DBaseBlock(512, 512, kernel_size=4, padding=0, downsample=False))
-        if self.gan_type == 'vanilla':
-            self.linear = nn.Sequential(
-                nn.Linear(512, 1),
-                nn.Sigmoid()
-            )
-        elif self.gan_type == 'wgan-gp':
-            self.linear = nn.Linear(512, 1)
-        else:
-            raise NotImplementedError('GAN type [{:s}] is not found'.format(self.gan_type))
+        self.linear = nn.Linear(512, 1)
+
 
     def get_channel_num(self, level):
         '''

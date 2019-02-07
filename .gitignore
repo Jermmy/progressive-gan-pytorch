@@ -106,3 +106,4 @@ venv.bak/
 .idea/
 ckpt/
 result/
+data/Celeba-128x128/

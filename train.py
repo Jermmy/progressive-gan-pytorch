@@ -41,11 +41,11 @@ def train(config):
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
 
     generator = Generator(resolution=config.resolution).to(device)
-    discriminator = Discriminator(resolution=config.resolution, gan_type=config.gan_type).to(device)
+    discriminator = Discriminator(resolution=config.resolution).to(device)
 
-    ganLoss = GANLoss(gan_type=config.gan_type, real_label=0.9, fake_label=0.).to(device)
+    ganLoss = GANLoss(gan_mode=config.gan_type, target_real_label=0.9, target_fake_label=0.).to(device)
 
-    if config.gan_type == 'wgan-gp':
+    if config.gan_type == 'wgangp':
         gpLoss = GradientPenaltyLoss(device).to(device)
 
     if config.load_G:
@@ -75,7 +75,7 @@ def train(config):
             optimD.zero_grad()
             dis_loss = ganLoss(discriminator(real_images, alpha=config.alpha), True) + \
                        ganLoss(discriminator(fake_images.detach(), alpha=config.alpha), False)
-            if config.gan_type == 'wgan-gp':
+            if config.gan_type == 'wgangp':
                 gp_loss = gpLoss(discriminator, real_images, fake_images.detach())
                 dis_loss = dis_loss + config.l_gp * gp_loss
             dis_loss.backward()
@@ -85,7 +85,7 @@ def train(config):
                 if config.gan_type == 'vanilla':
                     print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f' %(epoch, config.epochs,
                          i, len(train_loader), gan_loss.item(), dis_loss.item()))
-                elif config.gan_type == 'wgan-gp':
+                elif config.gan_type == 'wgangp':
                     print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f | gp loss: %.4f' %(epoch, config.epochs,
                          i, len(train_loader), gan_loss.item(), dis_loss.item(), gp_loss.item()))
 
@@ -99,7 +99,7 @@ def train(config):
                 writer.add_scalars('loss', {'G loss': gan_loss.item(),
                                             'D loss': dis_loss.item()}, (epoch-1)*len(train_loader) + i)
 
-                if config.gan_type == 'wgan-gp':
+                if config.gan_type == 'wgangp':
                     writer.add_scalars('loss', {'gp': gp_loss.item()}, (epoch-1)*len(train_loader) + i)
 
         if epoch % 1 == 0:
