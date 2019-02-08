@@ -136,3 +136,63 @@ class DBaseBlock(nn.Module):
         if self.downsample:
             x = F.avg_pool2d(x, kernel_size=2, stride=2)
         return x
+
+
+
+class ConcatLayer(nn.Module):
+    def __init__(self):
+        super(ConcatLayer, self).__init__()
+
+    def forward(self, x, y):
+        return torch.cat([x, y], 1)
+
+
+def mean(tensor, axis, **kwargs):
+    if isinstance(axis, int):
+        axis = [axis]
+    for ax in axis:
+        tensor = torch.mean(tensor, axis=ax, **kwargs)
+    return tensor
+
+
+class MinibatchStatConcatLayer(nn.Module):
+    """Minibatch stat concatenation layer.
+    - averaging tells how much averaging to use ('all', 'spatial', 'none')
+    """
+    def __init__(self, averaging='all'):
+        super(MinibatchStatConcatLayer, self).__init__()
+        self.averaging = averaging.lower()
+        if 'group' in self.averaging:
+            self.n = int(self.averaging[5:])
+        else:
+            assert self.averaging in ['all', 'flat', 'spatial', 'none', 'gpool'], 'Invalid averaging mode'%self.averaging
+        self.adjusted_std = lambda x, **kwargs: torch.sqrt(torch.mean((x - torch.mean(x, **kwargs)) ** 2, **kwargs) + 1e-8) #Tstdeps in the original implementation
+
+    def forward(self, x):
+        shape = list(x.size())
+        target_shape = shape.copy()
+        vals = self.adjusted_std(x, dim=0, keepdim=True)# per activation, over minibatch dim
+        if self.averaging == 'all':  # average everything --> 1 value per minibatch
+            target_shape[1] = 1
+            vals = torch.mean(vals, dim=1, keepdim=True)#vals = torch.mean(vals, keepdim=True)
+
+        elif self.averaging == 'spatial':  # average spatial locations
+            if len(shape) == 4:
+                vals = mean(vals, axis=[2,3], keepdim=True)  # torch.mean(torch.mean(vals, 2, keepdim=True), 3, keepdim=True)
+        elif self.averaging == 'none':  # no averaging, pass on all information
+            target_shape = [target_shape[0]] + [s for s in target_shape[1:]]
+        elif self.averaging == 'gpool':  # EXPERIMENTAL: compute variance (func) over minibatch AND spatial locations.
+            if len(shape) == 4:
+                vals = mean(x, [0,2,3], keepdim=True)  # torch.mean(torch.mean(torch.mean(x, 2, keepdim=True), 3, keepdim=True), 0, keepdim=True)
+        elif self.averaging == 'flat':  # variance of ALL activations --> 1 value per minibatch
+            target_shape[1] = 1
+            vals = torch.FloatTensor([self.adjusted_std(x)])
+        else:  # self.averaging == 'group'  # average everything over n groups of feature maps --> n values per minibatch
+            target_shape[1] = self.n
+            vals = vals.view(self.n, self.shape[1]/self.n, self.shape[2], self.shape[3])
+            vals = mean(vals, axis=0, keepdim=True).view(1, self.n, 1, 1)
+        vals = vals.expand(*target_shape)
+        return torch.cat([x, vals], 1) # feature-map concatanation
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(averaging = %s)' % (self.averaging)
