@@ -5,7 +5,9 @@ import torch.nn.functional as F
 
 import numpy as np
 
-from .base_model import PixelNormLayer, LayerNormLayer, ToRgbLayer, GBaseBlock, FromRgbLayer, DBaseBlock
+from .base_model import PixelNormLayer, LayerNormLayer, \
+    ToRgbLayer, GBaseBlock, FromRgbLayer, DBaseBlock, \
+    MinibatchStatConcatLayer
 
 
 class Generator(nn.Module):
@@ -80,7 +82,11 @@ class Discriminator(nn.Module):
 
         for level in range(self.R, 2, -1):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level - 1)
-            self.baseBlocks.append(DBaseBlock(ic, oc))
+            if level == 3:
+                self.baseBlocks.append(MinibatchStatConcatLayer())
+                self.baseBlocks.append(DBaseBlock(ic + 1, oc))
+            else:
+                self.baseBlocks.append(DBaseBlock(ic, oc))
             # Keep FromRgbLayer for model of each resolution
             self.fromRgbLayers.append(FromRgbLayer(ic))
 
