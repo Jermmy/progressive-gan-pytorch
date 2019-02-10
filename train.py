@@ -82,12 +82,12 @@ def train(config):
             optimD.step()
 
             if i % 500 == 0:
-                if config.gan_type == 'vanilla':
-                    print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f' %(epoch, config.epochs,
-                         i, len(train_loader), gan_loss.item(), dis_loss.item()))
-                elif config.gan_type == 'wgangp':
-                    print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f | gp loss: %.4f' %(epoch, config.epochs,
+                if config.gan_type == 'wgangp':
+                    print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f | gp loss: %.4f' % (epoch, config.epochs,
                          i, len(train_loader), gan_loss.item(), dis_loss.item(), gp_loss.item()))
+                else:
+                    print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f' %
+                          (epoch, config.epochs, i, len(train_loader), gan_loss.item(), dis_loss.item()))
 
                 fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
                 real_images = real_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
