@@ -35,6 +35,31 @@ class PixelNormLayer(nn.Module):
         return self.__class__.__name__ + '(eps = %s)' % (self.eps)
 
 
+class WScaleLayer(nn.Module):
+    """
+    Applies equalized learning rate to the preceding layer.
+    """
+    def __init__(self, incoming):
+        super(WScaleLayer, self).__init__()
+        self.incoming = incoming
+        self.scale = (torch.mean(self.incoming.weight.data ** 2)) ** 0.5
+        self.incoming.weight.data.copy_(self.incoming.weight.data / self.scale)
+        self.bias = None
+        if self.incoming.bias is not None:
+            self.bias = self.incoming.bias
+            self.incoming.bias = None
+
+    def forward(self, x):
+        x = self.scale * x
+        if self.bias is not None:
+            x += self.bias.view(1, self.bias.size()[0], 1, 1)
+        return x
+
+    def __repr__(self):
+        param_str = '(incoming = %s)' % (self.incoming.__class__.__name__)
+        return self.__class__.__name__ + param_str
+
+
 def mean(tensor, axis, **kwargs):
     if isinstance(axis, int):
         axis = [axis]
@@ -73,9 +98,16 @@ class LayerNormLayer(nn.Module):
 
 class ToRgbLayer(nn.Module):
 
-    def __init__(self, in_channels, out_channels=3):
+    def __init__(self, in_channels, out_channels=3, norm='pixelnorm'):
         super(ToRgbLayer, self).__init__()
+        self.norm = norm.lower()
         self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0)]
+        if self.norm == 'pixelnorm':
+            self.layers += [PixelNormLayer()]
+        elif self.norm == 'batchnorm':
+            self.layers += [nn.BatchNorm2d(out_channels)]
+        else:
+            raise NotImplementedError('Norm type %s is not supported.' % self.norm)
         # self.layers += [nn.LeakyReLU(0.2)]
         self.layers = nn.Sequential(*self.layers)
         init_params(self.layers)
@@ -86,13 +118,23 @@ class ToRgbLayer(nn.Module):
 
 class GBaseBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, upsample=True):
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, upsample=True, norm='pixelnorm'):
         super(GBaseBlock, self).__init__()
+        self.norm = norm.lower()
+        if self.norm == 'pixelnorm':
+            normLayer = PixelNormLayer()
+        elif self.norm == 'batchnorm':
+            normLayer = nn.BatchNorm2d()
+        else:
+            raise NotImplementedError('Norm type %s is not supported.' % self.norm)
+
         self.upsample = upsample
         self.layers = [nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)]
         self.layers += [nn.LeakyReLU(0.2)]
+        self.layers += [normLayer]
         self.layers += [nn.Conv2d(out_channels, out_channels, 3, stride=1, padding=1)]
         self.layers += [nn.LeakyReLU(0.2)]
+        self.layers += [normLayer]
         self.layers = nn.Sequential(*self.layers)
 
         init_params(self.layers)
