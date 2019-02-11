@@ -85,6 +85,7 @@ class Discriminator(nn.Module):
             if level == 3:
                 self.baseBlocks.append(MinibatchStatConcatLayer())
                 self.baseBlocks.append(DBaseBlock(ic + 1, oc))
+                # self.baseBlocks.append(DBaseBlock(ic, oc))
             else:
                 self.baseBlocks.append(DBaseBlock(ic, oc))
             # Keep FromRgbLayer for model of each resolution
