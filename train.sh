@@ -7,10 +7,12 @@ gan_type=lsgan
 l_gp=10.
 resolution=4
 alpha=1.0
+norm=pixelnorm
+
 start_idx=0
 
-ckpt_path=ckpt/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}
-result_path=result/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}
+ckpt_path=ckpt/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}_${norm}
+result_path=result/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}_${norm}
 
 # load_G=ckpt/reso-4x4/lr_${lr}_${gan_type}_alpha_${alpha}/G-epoch-10.pkl
 # load_D=ckpt/reso-4x4/lr_${lr}_${gan_type}_alpha_${alpha}/D-epoch-10.pkl

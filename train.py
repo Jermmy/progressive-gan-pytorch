@@ -40,7 +40,7 @@ def train(config):
                                  transform=train_transform)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
 
-    generator = Generator(resolution=config.resolution).to(device)
+    generator = Generator(resolution=config.resolution, norm=config.norm).to(device)
     discriminator = Discriminator(resolution=config.resolution).to(device)
 
     ganLoss = GANLoss(gan_mode=config.gan_type, target_real_label=0.9, target_fake_label=0.).to(device)
@@ -126,6 +126,7 @@ if __name__ == '__main__':
     parser.add_argument('--l_gp', type=float, default=10.)
     parser.add_argument('--resolution', type=int, default=4)
     parser.add_argument('--alpha', type=float, default=1.0)
+    parser.add_argument('--norm', type=str, default='pixelnorm')
 
     parser.add_argument('--start_idx', type=int, default=0)
 
