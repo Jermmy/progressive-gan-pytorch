@@ -24,13 +24,13 @@ class Generator(nn.Module):
         self.baseBlocks = nn.ModuleList()
 
         self.baseBlocks.append(GBaseBlock(512, 512, kernel_size=4, padding=3, upsample=False, norm=self.norm))
-        self.toRgbLayers.append(ToRgbLayer(512, norm=self.norm))
+        self.toRgbLayers.append(ToRgbLayer(512))
 
         for level in range(2, self.R):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level + 1)
             self.baseBlocks.append(GBaseBlock(ic, oc, norm=self.norm))
             # Keep ToRgbLayer for model of each resolution
-            self.toRgbLayers.append(ToRgbLayer(oc, norm=self.norm))
+            self.toRgbLayers.append(ToRgbLayer(oc))
 
     def get_channel_num(self, level):
         '''

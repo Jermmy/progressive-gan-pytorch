@@ -98,16 +98,10 @@ class LayerNormLayer(nn.Module):
 
 class ToRgbLayer(nn.Module):
 
-    def __init__(self, in_channels, out_channels=3, norm='pixelnorm'):
+    def __init__(self, in_channels, out_channels=3):
         super(ToRgbLayer, self).__init__()
-        self.norm = norm.lower()
         self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0)]
-        if self.norm == 'pixelnorm':
-            self.layers += [PixelNormLayer()]
-        elif self.norm == 'batchnorm':
-            self.layers += [nn.BatchNorm2d(out_channels)]
-        else:
-            raise NotImplementedError('Norm type %s is not supported.' % self.norm)
+
         # self.layers += [nn.LeakyReLU(0.2)]
         self.layers = nn.Sequential(*self.layers)
         init_params(self.layers)
