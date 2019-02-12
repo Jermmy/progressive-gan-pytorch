@@ -7,12 +7,12 @@ import numpy as np
 
 from .base_model import PixelNormLayer, LayerNormLayer, \
     ToRgbLayer, GBaseBlock, FromRgbLayer, DBaseBlock, \
-    MinibatchStatConcatLayer
+    MinibatchStatConcatLayer, WScaleLayer, he_init
 
 
 class Generator(nn.Module):
 
-    def __init__(self, resolution=1024, norm='pixelnorm'):
+    def __init__(self, resolution=1024, output_act='linear', norm='pixelnorm'):
         super(Generator, self).__init__()
         self.resolution = resolution
         self.R = int(np.log2(self.resolution))  # resolution level
@@ -23,12 +23,12 @@ class Generator(nn.Module):
         self.toRgbLayers = nn.ModuleList()
         self.baseBlocks = nn.ModuleList()
 
-        self.baseBlocks.append(GBaseBlock(512, 512, kernel_size=4, padding=3, upsample=False, norm=self.norm))
-        self.toRgbLayers.append(ToRgbLayer(512))
+        self.baseBlocks.append(GBaseBlock(512, 512, kernel_size=4, padding=3, upsample=False, nonlinearity='leaky_relu', param=0.2, norm=self.norm))
+        self.toRgbLayers.append(ToRgbLayer(512, nonlinearity=output_act))
 
         for level in range(2, self.R):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level + 1)
-            self.baseBlocks.append(GBaseBlock(ic, oc, norm=self.norm))
+            self.baseBlocks.append(GBaseBlock(ic, oc, nonlinearity='leaky_relu', param=0.2, norm=self.norm))
             # Keep ToRgbLayer for model of each resolution
             self.toRgbLayers.append(ToRgbLayer(oc))
 

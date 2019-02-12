@@ -40,7 +40,7 @@ def train(config):
                                  transform=train_transform)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
 
-    generator = Generator(resolution=config.resolution, norm=config.norm).to(device)
+    generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm).to(device)
     discriminator = Discriminator(resolution=config.resolution).to(device)
 
     ganLoss = GANLoss(gan_mode=config.gan_type, target_real_label=0.9, target_fake_label=0.).to(device)
@@ -81,6 +81,9 @@ def train(config):
             dis_loss.backward()
             optimD.step()
 
+            # if i % 10 == 0:
+            #     print(fake_images[0])
+
             if i % 500 == 0:
                 if config.gan_type == 'wgangp':
                     print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f | gp loss: %.4f' % (epoch, config.epochs,
@@ -89,7 +92,10 @@ def train(config):
                     print('Epoch: %d/%d | Step: %d/%d | G loss: %.4f | D loss: %.4f' %
                           (epoch, config.epochs, i, len(train_loader), gan_loss.item(), dis_loss.item()))
 
-                fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
+                if config.output_act == 'tanh':
+                    fake_images = (fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1)) + 1.) * 0.5
+                else:
+                    fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
                 real_images = real_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
                 save_result(rows=2, cols=3, images=fake_images,
                             result_file=join(config.result_path, "fake-epoch-%d-step-%d.png" % (epoch, i)))
@@ -127,6 +133,7 @@ if __name__ == '__main__':
     parser.add_argument('--resolution', type=int, default=4)
     parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--norm', type=str, default='pixelnorm')
+    parser.add_argument('--output_act', type=str, default='linear')
 
     parser.add_argument('--start_idx', type=int, default=0)
 

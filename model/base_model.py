@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
+from torch.nn.init import kaiming_normal, calculate_gain
 
 
 def init_params(modules):
@@ -17,6 +18,20 @@ def init_params(modules):
             nn.init.normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
+
+def he_init(layer, nonlinearity='conv2d', param=None):
+    nonlinearity = nonlinearity.lower()
+    if nonlinearity not in ['linear', 'conv1d', 'conv2d', 'conv3d', 'relu', 'leaky_relu', 'sigmoid', 'tanh']:
+        if not hasattr(layer, 'gain') or layer.gain is None:
+            gain = 0  # default
+        else:
+            gain = layer.gain
+    elif nonlinearity == 'leaky_relu':
+        assert param is not None, 'Negative_slope(param) should be given.'
+        gain = calculate_gain(nonlinearity, param)
+    else:
+        gain = calculate_gain(nonlinearity)
+    kaiming_normal(layer.weight, a=gain)
 
 
 class PixelNormLayer(nn.Module):
@@ -98,10 +113,16 @@ class LayerNormLayer(nn.Module):
 
 class ToRgbLayer(nn.Module):
 
-    def __init__(self, in_channels, out_channels=3):
+    def __init__(self, in_channels, out_channels=3, nonlinearity='linear', param=None):
         super(ToRgbLayer, self).__init__()
-        self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0)]
+        self.nonlinearity = nonlinearity.lower()
+        assert self.nonlinearity == 'tanh' or self.nonlinearity == 'linear'
 
+        self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0)]
+        he_init(self.layers[-1], nonlinearity, param)
+        self.layers += [WScaleLayer(self.layers[-1])]
+        if self.nonlinearity == 'tanh':
+            self.layers += [nn.Tanh()]
         # self.layers += [nn.LeakyReLU(0.2)]
         self.layers = nn.Sequential(*self.layers)
         init_params(self.layers)
@@ -112,8 +133,11 @@ class ToRgbLayer(nn.Module):
 
 class GBaseBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, upsample=True, norm='pixelnorm'):
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1,
+                 upsample=True, norm='pixelnorm', nonlinearity='leaky_relu', param=0.2):
         super(GBaseBlock, self).__init__()
+        self.nonlinearity = nonlinearity.lower()
+        assert self.nonlinearity == 'leaky_relu' or self.nonlinearity == 'relu'
         self.norm = norm.lower()
         if self.norm == 'pixelnorm':
             normLayer = PixelNormLayer()
@@ -124,11 +148,27 @@ class GBaseBlock(nn.Module):
 
         self.upsample = upsample
         self.layers = [nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)]
-        self.layers += [nn.LeakyReLU(0.2)]
+        he_init(self.layers[-1], nonlinearity, param)
+        self.layers += [WScaleLayer(self.layers[-1])]
+
+        if self.nonlinearity == 'leaky_relu':
+            self.layers += [nn.LeakyReLU(param)]
+        elif self.nonlinearity == 'relu':
+            self.layers += [nn.ReLU()]
+
         self.layers += [normLayer]
+
         self.layers += [nn.Conv2d(out_channels, out_channels, 3, stride=1, padding=1)]
-        self.layers += [nn.LeakyReLU(0.2)]
+        he_init(self.layers[-1], nonlinearity, param)
+        self.layers += [WScaleLayer(self.layers[-1])]
+
+        if self.nonlinearity == 'leaky_relu':
+            self.layers += [nn.LeakyReLU(param)]
+        elif self.nonlinearity == 'relu':
+            self.layers += [nn.ReLU()]
+
         self.layers += [normLayer]
+
         self.layers = nn.Sequential(*self.layers)
 
         init_params(self.layers)
@@ -142,10 +182,14 @@ class GBaseBlock(nn.Module):
 
 class FromRgbLayer(nn.Module):
 
-    def __init__(self, out_channels, in_channels=3):
+    def __init__(self, out_channels, in_channels=3, nonlinearity='linear', param=None):
         super(FromRgbLayer, self).__init__()
         self.layers = [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)]
-        self.layers += [nn.LeakyReLU(0.2)]
+        he_init(self.layers[-1], nonlinearity, param)
+        self.layers += [WScaleLayer(self.layers[-1])]
+        self.nonlinearity = nonlinearity.lower()
+        if self.nonlinearity == 'leaky_relu':
+            self.layers += [nn.LeakyReLU(param)]
         self.layers = nn.Sequential(*self.layers)
         init_params(self.layers)
 
@@ -155,14 +199,34 @@ class FromRgbLayer(nn.Module):
 
 class DBaseBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, downsample=True):
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, downsample=True,
+                 nonlinearity='leaky_relu', param=0.2):
         super(DBaseBlock, self).__init__()
+        self.nonlinearity = nonlinearity.lower()
+        assert self.nonlinearity == 'leaky_relu' or self.nonlinearity == 'relu'
         self.downsample = downsample
         self.layers = []
+
         self.layers += [nn.Conv2d(in_channels, in_channels, 3, padding=1)]
-        self.layers += [nn.LeakyReLU(0.2)]
+        he_init(self.layers[-1], self.nonlinearity, param)
+
+        self.layers += [WScaleLayer(self.layers[-1])]
+
+        if self.nonlinearity == 'leaky_relu':
+            self.layers += [nn.LeakyReLU(param)]
+        elif self.nonlinearity == 'relu':
+            self.layers += [nn.ReLU()]
+
         self.layers += [nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)]
-        self.layers += [nn.LeakyReLU(0.2)]
+        he_init(self.layers[-1], self.nonlinearity, param)
+
+        self.layers += [WScaleLayer(self.layers[-1])]
+
+        if self.nonlinearity == 'leaky_relu':
+            self.layers += [nn.LeakyReLU(param)]
+        elif self.nonlinearity == 'relu':
+            self.layers += [nn.ReLU()]
+
         self.layers = nn.Sequential(*self.layers)
 
         init_params(self.layers)
