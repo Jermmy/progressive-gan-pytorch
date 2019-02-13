@@ -12,7 +12,7 @@ from .base_model import PixelNormLayer, LayerNormLayer, \
 
 class Generator(nn.Module):
 
-    def __init__(self, resolution=1024, output_act='linear', norm='pixelnorm'):
+    def __init__(self, resolution=1024, output_act='linear', norm='pixelnorm', device=torch.device('cpu')):
         super(Generator, self).__init__()
         self.resolution = resolution
         self.R = int(np.log2(self.resolution))  # resolution level
@@ -23,14 +23,14 @@ class Generator(nn.Module):
         self.toRgbLayers = nn.ModuleList()
         self.baseBlocks = nn.ModuleList()
 
-        self.baseBlocks.append(GBaseBlock(512, 512, kernel_size=4, padding=3, upsample=False, nonlinearity='leaky_relu', param=0.2, norm=self.norm))
-        self.toRgbLayers.append(ToRgbLayer(512, nonlinearity=output_act))
+        self.baseBlocks.append(GBaseBlock(512, 512, kernel_size=4, padding=3, upsample=False, nonlinearity='leaky_relu', param=0.2, norm=self.norm, device=device))
+        self.toRgbLayers.append(ToRgbLayer(512, nonlinearity=output_act, device=device))
 
         for level in range(2, self.R):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level + 1)
-            self.baseBlocks.append(GBaseBlock(ic, oc, nonlinearity='leaky_relu', param=0.2, norm=self.norm))
+            self.baseBlocks.append(GBaseBlock(ic, oc, nonlinearity='leaky_relu', param=0.2, norm=self.norm, device=device))
             # Keep ToRgbLayer for model of each resolution
-            self.toRgbLayers.append(ToRgbLayer(oc))
+            self.toRgbLayers.append(ToRgbLayer(oc, device=device))
 
     def get_channel_num(self, level):
         '''
@@ -69,7 +69,7 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
 
-    def __init__(self, resolution=1024):
+    def __init__(self, resolution=1024, device=torch.device('cpu')):
         super(Discriminator, self).__init__()
         self.resolution = resolution
         self.R = int(np.log2(resolution)) # resolution level
@@ -85,14 +85,14 @@ class Discriminator(nn.Module):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level - 1)
             if level == 3:
                 self.baseBlocks.append(MinibatchStatConcatLayer())
-                self.baseBlocks.append(DBaseBlock(ic + 1, oc))
+                self.baseBlocks.append(DBaseBlock(ic + 1, oc, device=device))
                 # self.baseBlocks.append(DBaseBlock(ic, oc))
             else:
-                self.baseBlocks.append(DBaseBlock(ic, oc))
+                self.baseBlocks.append(DBaseBlock(ic, oc, device=device))
             # Keep FromRgbLayer for model of each resolution
-            self.fromRgbLayers.append(FromRgbLayer(ic))
+            self.fromRgbLayers.append(FromRgbLayer(ic, device=device))
 
-        self.baseBlocks.append(DBaseBlock(512, 512, kernel_size=4, padding=0, downsample=False))
+        self.baseBlocks.append(DBaseBlock(512, 512, kernel_size=4, padding=0, downsample=False, device=device))
         self.linear = nn.Linear(512, 1)
 
 

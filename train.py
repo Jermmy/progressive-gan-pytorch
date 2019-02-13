@@ -40,8 +40,8 @@ def train(config):
                                  transform=train_transform)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
 
-    generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm).to(device)
-    discriminator = Discriminator(resolution=config.resolution).to(device)
+    generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm, device=device).to(device)
+    discriminator = Discriminator(resolution=config.resolution, device=device).to(device)
 
     ganLoss = GANLoss(gan_mode=config.gan_type, target_real_label=0.9, target_fake_label=0.).to(device)
 
@@ -81,8 +81,8 @@ def train(config):
             dis_loss.backward()
             optimD.step()
 
-            # if i % 10 == 0:
-            #     print(fake_images[0])
+            if i % 10 == 0:
+                print(fake_images[0])
 
             if i % 500 == 0:
                 if config.gan_type == 'wgangp':
