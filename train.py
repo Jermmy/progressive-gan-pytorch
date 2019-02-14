@@ -81,8 +81,8 @@ def train(config):
             dis_loss.backward()
             optimD.step()
 
-            if i % 10 == 0:
-                print(fake_images[0])
+            #if i % 10 == 0:
+            #    print(fake_images[0])
 
             if i % 500 == 0:
                 if config.gan_type == 'wgangp':

@@ -79,7 +79,7 @@ class Discriminator(nn.Module):
         self.fromRgbLayers = nn.ModuleList()
         self.baseBlocks = nn.ModuleList()
 
-        self.fromRgbLayers.append(FromRgbLayer(self.get_channel_num(self.R)))
+        self.fromRgbLayers.append(FromRgbLayer(self.get_channel_num(self.R), device=device))
 
         for level in range(self.R, 2, -1):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level - 1)

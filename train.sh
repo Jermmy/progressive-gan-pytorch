@@ -1,5 +1,5 @@
-#celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-128x128
-celeba_hq_dir=data/Celeba-128x128
+celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-128x128
+#celeba_hq_dir=data/Celeba-128x128
 lr=1e-3
 batch_size=16
 epochs=40
@@ -8,7 +8,7 @@ l_gp=10.
 resolution=4
 alpha=1.0
 norm=pixelnorm
-output_act=tanh
+output_act=linear
 
 start_idx=0
 
