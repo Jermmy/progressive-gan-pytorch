@@ -85,7 +85,7 @@ class Discriminator(nn.Module):
 
         # self.fromRgbLayers.append(FromRgbLayer(self.get_channel_num(self.R)))
         # 1024x1024
-        self.fromRgbLayers.insert(0, FromRgbLayer(self.get_channel_num(self.R)))
+        self.fromRgbLayers.insert(0, FromRgbLayer(self.get_channel_num(self.R), device=device))
 
         # 512x512 --> 4x4
         for level in range(self.R, 2, -1):
