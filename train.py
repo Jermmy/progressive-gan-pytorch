@@ -49,10 +49,16 @@ def train(config):
         gpLoss = GradientPenaltyLoss(device).to(device)
 
     if config.load_G:
-        generator.load_model(config.load_G)
+        if torch.cuda.is_available():
+            generator.load_model(config.load_G)
+        else:
+            generator.load_model(config.load_G, map_location='cpu')
 
     if config.load_D:
-        discriminator.load_model(config.load_D)
+        if torch.cuda.is_available():
+            discriminator.load_model(config.load_D)
+        else:
+            discriminator.load_model(config.load_D, map_location='cpu')
 
     lr = config.lr
 
@@ -81,8 +87,8 @@ def train(config):
             dis_loss.backward()
             optimD.step()
 
-            if i % 10 == 0:
-                print(fake_images[0])
+            # if i % 10 == 0:
+            #     print(fake_images[0])
 
             if i % 500 == 0:
                 if config.gan_type == 'wgangp':
@@ -116,11 +122,54 @@ def train(config):
     writer.close()
 
 
+def test(config):
+    print(config)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
+
+    if not exists(join(config.result_path, 'test-%d' % config.test_epoch)):
+        os.makedirs(join(config.result_path, 'test-%d' % config.test_epoch))
+
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    test_dataset = TrainDataset(config.celeba_hq_dir, config.test_file, resolution=config.resolution,
+                                 transform=test_transform)
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
+
+    generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm, device=device).to(device)
+
+    if config.load_G:
+        if torch.cuda.is_available():
+            generator.load_model(config.load_G)
+        else:
+            generator.load_model(config.load_G, map_location='cpu')
+
+    generator.eval()
+
+    for i, data in enumerate(test_loader):
+        noises = data['noise'].float().to(device)
+        fake_images = generator(noises, alpha=config.alpha)
+
+        if config.output_act == 'tanh':
+            fake_images = (fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1)) + 1.) * 0.5
+        else:
+            fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
+
+        save_result(rows=2, cols=3, images=fake_images,
+                    result_file=join(config.result_path, 'test-%d' % config.test_epoch, "fake-%d.png" % i))
+
+        if i > 50:
+            break
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--celeba_hq_dir', type=str, default='/media/liuwq/data/Dataset/Celeba/Celeba-HQ')
     parser.add_argument('--train_file', type=str, default='data/train_list.txt')
+    parser.add_argument('--test_file', type=str, default='data/test_list.txt')
     parser.add_argument('--ckpt_path', type=str, default='ckpt/reso-4x4/')
     parser.add_argument('--result_path', type=str, default='result/reso-4x4/')
 
@@ -137,10 +186,17 @@ if __name__ == '__main__':
 
     parser.add_argument('--start_idx', type=int, default=0)
 
+    parser.add_argument('--test_epoch', type=int, default=40)
+
     parser.add_argument('--load_G', type=str, default=None)
     parser.add_argument('--load_D', type=str, default=None)
 
+    parser.add_argument('--phase', type=str, default='train')
+
     config = parser.parse_args()
 
-    train(config)
+    if config.phase == 'train':
+        train(config)
+    elif config.phase == 'test':
+        test(config)
 

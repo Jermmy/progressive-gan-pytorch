@@ -13,4 +13,5 @@ def save_result(rows, cols, images, result_file):
         row_images = np.concatenate(row_images, axis=1)
         show_images += [row_images]
     show_images = np.concatenate(show_images, axis=0)
+    show_images = np.clip(show_images, 0, 255)
     cv2.imwrite(result_file, show_images)

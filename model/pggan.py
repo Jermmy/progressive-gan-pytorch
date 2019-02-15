@@ -23,9 +23,11 @@ class Generator(nn.Module):
         self.toRgbLayers = nn.ModuleList()
         self.baseBlocks = nn.ModuleList()
 
+        # 1x1 --> 4x4
         self.baseBlocks.append(GBaseBlock(512, 512, kernel_size=4, padding=3, upsample=False, nonlinearity='leaky_relu', param=0.2, norm=self.norm, device=device))
         self.toRgbLayers.append(ToRgbLayer(512, nonlinearity=output_act, device=device))
 
+        # 4x4 --> 1024x1024
         for level in range(2, self.R):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level + 1)
             self.baseBlocks.append(GBaseBlock(ic, oc, nonlinearity='leaky_relu', param=0.2, norm=self.norm, device=device))
@@ -42,11 +44,11 @@ class Generator(nn.Module):
 
     def forward(self, x, alpha=1.0):
         assert alpha >= 0.0 and alpha <= 1.0
-        for i, level in enumerate(range(2, self.R-1)):
+        for i, level in enumerate(range(2, self.R)):
             x = self.baseBlocks[i](x)
 
         if alpha < 1.0:
-            y = F.interpolate(x, (self.target_resolution, self.target_resolution), mode='bilinear')
+            y = F.interpolate(x, (self.resolution, self.resolution), mode='bilinear')
             y = self.toRgbLayers[-2](y)
             x = self.baseBlocks[-1](x)
             x = self.toRgbLayers[-1](x)
@@ -56,11 +58,12 @@ class Generator(nn.Module):
             x = self.toRgbLayers[-1](x)
             return x
 
-    def load_model(self, model_file):
-        pretrained_dict = torch.load(model_file)
+    def load_model(self, model_file, map_location='cpu'):
+        pretrained_dict = torch.load(model_file, map_location)
         state_dict = self.state_dict()
         for k, v in pretrained_dict.items():
             state_dict[k] = v
+            print('load: ', k)
         self.load_state_dict(state_dict)
 
     def save_model(self, model_file):
@@ -78,21 +81,38 @@ class Discriminator(nn.Module):
         # ==== define model ====
         self.fromRgbLayers = nn.ModuleList()
         self.baseBlocks = nn.ModuleList()
+        self.minibatchStddevLayer = MinibatchStatConcatLayer()
 
-        self.fromRgbLayers.append(FromRgbLayer(self.get_channel_num(self.R)))
+        # self.fromRgbLayers.append(FromRgbLayer(self.get_channel_num(self.R)))
+        # 1024x1024
+        self.fromRgbLayers.insert(0, FromRgbLayer(self.get_channel_num(self.R)))
 
+        # 512x512 --> 4x4
         for level in range(self.R, 2, -1):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level - 1)
-            if level == 3:
-                self.baseBlocks.append(MinibatchStatConcatLayer())
-                self.baseBlocks.append(DBaseBlock(ic + 1, oc, device=device))
+            # if level == 3:
+            #     self.minibatchStddevLayer = MinibatchStatConcatLayer()
+                # self.baseBlocks.append(MinibatchStatConcatLayer())
+                # self.baseBlocks.append(DBaseBlock(ic + 1, oc, device=device))
                 # self.baseBlocks.append(DBaseBlock(ic, oc))
-            else:
-                self.baseBlocks.append(DBaseBlock(ic, oc, device=device))
-            # Keep FromRgbLayer for model of each resolution
-            self.fromRgbLayers.append(FromRgbLayer(ic, device=device))
 
-        self.baseBlocks.append(DBaseBlock(512, 512, kernel_size=4, padding=0, downsample=False, device=device))
+            # self.baseBlocks.append(DBaseBlock(ic, oc, device=device))
+            # Insert small resolution layer in the front
+            self.baseBlocks.insert(0, DBaseBlock(ic, oc, device=device))
+            # Keep FromRgbLayer for model of each resolution
+            # self.fromRgbLayers.append(FromRgbLayer(ic, device=device))
+            self.fromRgbLayers.insert(0, FromRgbLayer(ic, device=device))
+
+        # if self.minibatchStddevLayer != None:
+        #     self.baseBlocks.append(DBaseBlock(513, 512, kernel_size=4, padding=0, downsample=False, device=device))
+        # else:
+        #     self.baseBlocks.append(DBaseBlock(512, 512, kernel_size=4, padding=0, downsample=False, device=device))
+        # self.baseBlocks.insert(0, MinibatchStatConcatLayer())
+        # self.baseBlocks.insert(0, DBaseBlock(513, 512, kernel_size=4, padding=0, downsample=False, device=device))
+        self.baseBlocks.insert(0, nn.Sequential(
+            MinibatchStatConcatLayer(),
+            DBaseBlock(513, 512, kernel_size=4, padding=0, downsample=False, device=device)
+        ))
         self.linear = nn.Linear(512, 1)
 
 
@@ -108,24 +128,24 @@ class Discriminator(nn.Module):
 
         if alpha < 1.0:
             y = F.avg_pool2d(x, kernel_size=2, stride=2)
-            y = self.fromRgbLayers[1](y)
-            x = self.fromRgbLayers[0](x)
-            x = self.baseBlocks[0](x)
+            y = self.fromRgbLayers[-2](y)
+            x = self.fromRgbLayers[-1](x)
+            x = self.baseBlocks[-1](x)
             x = (1 - alpha) * y + alpha * x
         else:
-            x = self.fromRgbLayers[0](x)
-            x = self.baseBlocks[0](x)
+            x = self.fromRgbLayers[-1](x)
+            x = self.baseBlocks[-1](x)
 
         for i, level in enumerate(range(self.R, 2, -1), 1):
-            x = self.baseBlocks[i](x)
+            x = self.baseBlocks[-1-i](x)
 
         x = x.view((-1, 512))
         x = self.linear(x)
 
         return x
 
-    def load_model(self, model_file):
-        pretrained_dict = torch.load(model_file)
+    def load_model(self, model_file, map_location='cpu'):
+        pretrained_dict = torch.load(model_file, map_location)
         state_dict = self.state_dict()
         for k, v in pretrained_dict.items():
             state_dict[k] = v
