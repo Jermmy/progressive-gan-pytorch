@@ -112,7 +112,7 @@ def train(config):
                 if config.gan_type == 'wgangp':
                     writer.add_scalars('loss', {'gp': gp_loss.item()}, (epoch-1)*len(train_loader) + i)
 
-        if epoch % 1 == 0:
+        if epoch % 2 == 0:
             generator.save_model(join(config.ckpt_path, 'G-epoch-%d.pkl' % epoch))
             discriminator.save_model(join(config.ckpt_path, 'D-epoch-%d.pkl' % epoch))
 
@@ -120,7 +120,6 @@ def train(config):
             lr *= 0.1
             optimG = torch.optim.Adam(params=generator.parameters(), lr=lr)
             optimD = torch.optim.Adam(params=discriminator.parameters(), lr=lr)
-
 
     writer.export_scalars_to_json(join(config.result_path, 'scalars.json'))
     writer.close()

@@ -1,11 +1,10 @@
 celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-128x128
 lr=1e-3
 batch_size=16
-epochs=20
+epochs=40
 gan_type=lsgan
 l_gp=10.
-resolution=8
-prev_reso=4
+resolution=16
 alpha=0.5
 norm=pixelnorm
 output_act=linear
@@ -14,14 +13,15 @@ start_idx=0
 
 phase=train
 
-test_epoch=40
+test_epoch=60
 load_alpha=1.0
+load_reso=8
 
 ckpt_path=ckpt/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}_${norm}_${output_act}
 result_path=result/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}_${norm}_${output_act}
 
-load_G=ckpt/reso-${prev_reso}x${prev_reso}/lr_${lr}_${gan_type}_alpha_${load_alpha}_${norm}_${output_act}/G-epoch-${test_epoch}.pkl
-load_D=ckpt/reso-${prev_reso}x${prev_reso}/lr_${lr}_${gan_type}_alpha_${load_alpha}_${norm}_${output_act}/D-epoch-${test_epoch}.pkl
+load_G=ckpt/reso-${load_reso}x${load_reso}/lr_${lr}_${gan_type}_alpha_${load_alpha}_${norm}_${output_act}/G-epoch-${test_epoch}.pkl
+load_D=ckpt/reso-${load_reso}x${load_reso}/lr_${lr}_${gan_type}_alpha_${load_alpha}_${norm}_${output_act}/D-epoch-${test_epoch}.pkl
 
 if [ $phase == "test" ]; then
     load_G=${ckpt_path}/G-epoch-${test_epoch}.pkl
