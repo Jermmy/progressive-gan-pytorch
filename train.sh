@@ -1,13 +1,12 @@
 celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-128x128
-#celeba_hq_dir=data/Celeba-128x128
 lr=1e-3
 batch_size=16
-epochs=40
+epochs=20
 gan_type=lsgan
 l_gp=10.
-resolution=4
+resolution=8
 prev_reso=4
-alpha=1.0
+alpha=0.5
 norm=pixelnorm
 output_act=linear
 
@@ -28,7 +27,7 @@ if [ $phase == "test" ]; then
     load_G=${ckpt_path}/G-epoch-${test_epoch}.pkl
 fi
 
-python3 train.py --celeba_hq_dir ${celeba_hq_dir} --lr ${lr} --batch_size ${batch_size} \
+python train.py --celeba_hq_dir ${celeba_hq_dir} --lr ${lr} --batch_size ${batch_size} \
                 --epochs ${epochs} --gan_type ${gan_type} --l_gp ${l_gp} \
                 --resolution ${resolution} \
                 --alpha ${alpha} \
@@ -39,5 +38,5 @@ python3 train.py --celeba_hq_dir ${celeba_hq_dir} --lr ${lr} --batch_size ${batc
                 --phase ${phase} \
                 --ckpt_path ${ckpt_path} \
                 --result_path ${result_path} \
-                #--load_G ${load_G} \
-                #--load_D ${load_D}
+                --load_G ${load_G} \
+                --load_D ${load_D}

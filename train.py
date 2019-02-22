@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 
 from tensorboardX import SummaryWriter
 
+from tqdm import tqdm
 import numpy as np
 import cv2
 import argparse
@@ -67,7 +68,7 @@ def train(config):
 
     for epoch in range(1 + config.start_idx, config.epochs + 1):
 
-        for i, data in enumerate(train_loader):
+        for i, data in enumerate(tqdm(train_loader)):
             real_images = data['image'].to(device)
             noises = data['noise'].float().to(device)
 
@@ -86,9 +87,6 @@ def train(config):
                 dis_loss = dis_loss + config.l_gp * gp_loss
             dis_loss.backward()
             optimD.step()
-
-            # if i % 10 == 0:
-            #     print(fake_images[0])
 
             if i % 500 == 0:
                 if config.gan_type == 'wgangp':
@@ -117,6 +115,12 @@ def train(config):
         if epoch % 1 == 0:
             generator.save_model(join(config.ckpt_path, 'G-epoch-%d.pkl' % epoch))
             discriminator.save_model(join(config.ckpt_path, 'D-epoch-%d.pkl' % epoch))
+
+        if epoch % 20 == 0:
+            lr *= 0.1
+            optimG = torch.optim.Adam(params=generator.parameters(), lr=lr)
+            optimD = torch.optim.Adam(params=discriminator.parameters(), lr=lr)
+
 
     writer.export_scalars_to_json(join(config.result_path, 'scalars.json'))
     writer.close()
