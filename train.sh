@@ -13,9 +13,9 @@ start_idx=0
 
 phase=train
 
-test_epoch=60
-load_alpha=1.0
-load_reso=8
+test_epoch=40
+load_alpha=0.5
+load_reso=16
 
 ckpt_path=ckpt/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}_${norm}_${output_act}
 result_path=result/reso-${resolution}x${resolution}/lr_${lr}_${gan_type}_alpha_${alpha}_${norm}_${output_act}
