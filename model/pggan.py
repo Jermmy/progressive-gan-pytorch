@@ -32,7 +32,7 @@ class Generator(nn.Module):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level + 1)
             self.baseBlocks.append(GBaseBlock(ic, oc, nonlinearity='leaky_relu', param=0.2, norm=self.norm, device=device))
             # Keep ToRgbLayer for model of each resolution
-            self.toRgbLayers.append(ToRgbLayer(oc, device=device))
+            self.toRgbLayers.append(ToRgbLayer(oc, nonlinearity=output_act, device=device))
 
     def get_channel_num(self, level):
         '''

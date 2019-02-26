@@ -20,6 +20,8 @@ from utils.util import save_result
 def train(config):
     print(config)
 
+    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
     if not exists(config.ckpt_path):
@@ -112,7 +114,7 @@ def train(config):
                 if config.gan_type == 'wgangp':
                     writer.add_scalars('loss', {'gp': gp_loss.item()}, (epoch-1)*len(train_loader) + i)
 
-        if epoch % 2 == 0:
+        if epoch % 4 == 0:
             generator.save_model(join(config.ckpt_path, 'G-epoch-%d.pkl' % epoch))
             discriminator.save_model(join(config.ckpt_path, 'D-epoch-%d.pkl' % epoch))
 
@@ -151,7 +153,7 @@ def test(config):
 
     generator.eval()
 
-    for i, data in enumerate(test_loader):
+    for i, data in enumerate(tqdm(test_loader)):
         noises = data['noise'].float().to(device)
         fake_images = generator(noises, alpha=config.alpha)
 
@@ -177,7 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('--result_path', type=str, default='result/reso-4x4/')
 
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--num_workers', type=int, default=8)
+    parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--gan_type', type=str, default='vanilla')

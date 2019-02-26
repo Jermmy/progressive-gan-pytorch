@@ -125,6 +125,8 @@ class ToRgbLayer(nn.Module):
         self.layers += [WScaleLayer(self.layers[-1], device)]
         if self.nonlinearity == 'tanh':
             self.layers += [nn.Tanh()]
+        elif self.nonlinearity == 'sigmoid':
+            self.layers += [nn.Sigmoid()]
         # self.layers += [nn.LeakyReLU(0.2)]
         self.layers = nn.Sequential(*self.layers)
         init_params(self.layers)
