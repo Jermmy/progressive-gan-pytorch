@@ -2,19 +2,19 @@
 celeba_hq_dir=Celeba-128x128
 
 # 1: lsgan+linear  2: lsgan+tanh  3: wgangp+linear  4: wgangp+tanh
-exp=1
+exp=3
 if [ $exp == 1 ]; then
     lr=1e-4
-    resolution=8
-    epochs=40
+    resolution=32
+    epochs=80
     gan_type=lsgan
-    alpha=0.5
+    alpha=1.0
     norm=pixelnorm
     output_act=linear
     start_idx=0
     test_epoch=40
-    load_alpha=1.0
-    load_reso=4
+    load_alpha=0.5
+    load_reso=32
     l_gp=1.
 elif [ $exp == 2 ]; then
     lr=1e-3
@@ -29,18 +29,18 @@ elif [ $exp == 2 ]; then
     load_alpha=1.0
     load_reso=4
 elif [ $exp == 3 ]; then
-    lr=1e-5
-    resolution=8
+    lr=1e-4
+    resolution=16
     epochs=40
     gan_type=wgangp
     alpha=0.5
-    l_gp=1.
+    l_gp=10.
     norm=pixelnorm
     output_act=linear
     start_idx=0
     test_epoch=40
     load_alpha=1.0
-    load_reso=4
+    load_reso=8
 elif [ $exp == 4 ]; then
     lr=1e-4
     resolution=4
