@@ -34,10 +34,16 @@ def train(config):
         f.write(str(config))
 
     writer = SummaryWriter(config.result_path)
-
-    train_transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
+    
+    if config.output_act == 'linear':
+        train_transform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+    elif config.output_act == 'tanh':
+        train_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        ])
 
     train_dataset = TrainDataset(config.celeba_hq_dir, config.train_file, resolution=config.resolution,
                                  transform=train_transform)

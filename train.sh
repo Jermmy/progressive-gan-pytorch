@@ -2,7 +2,7 @@
 celeba_hq_dir=Celeba-128x128
 
 # 1: lsgan+linear  2: lsgan+tanh  3: wgangp+linear  4: wgangp+tanh
-exp=3
+exp=2
 if [ $exp == 1 ]; then
     lr=1e-4
     resolution=32
@@ -28,19 +28,20 @@ elif [ $exp == 2 ]; then
     test_epoch=40
     load_alpha=1.0
     load_reso=4
+    l_gp=1.
 elif [ $exp == 3 ]; then
     lr=1e-4
     resolution=16
-    epochs=40
+    epochs=80
     gan_type=wgangp
     alpha=0.5
-    l_gp=10.
+    l_gp=5.
     norm=pixelnorm
     output_act=linear
-    start_idx=0
+    start_idx=40
     test_epoch=40
-    load_alpha=1.0
-    load_reso=8
+    load_alpha=0.5
+    load_reso=16
 elif [ $exp == 4 ]; then
     lr=1e-4
     resolution=4
@@ -90,5 +91,5 @@ python train.py --celeba_hq_dir ${celeba_hq_dir} --lr ${lr} --batch_size ${batch
                 --phase ${phase} \
                 --ckpt_path ${ckpt_path} \
                 --result_path ${result_path} \
-                --load_G ${load_G} \
-                --load_D ${load_D}
+                # --load_G ${load_G} \
+                # --load_D ${load_D}
