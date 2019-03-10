@@ -252,9 +252,9 @@ def create_celeba_hq(celeba_hq_dir, celeba_dir, delta_dir, num_threads=4, num_ta
 
 # ----------------------------------------------------------------------------
 
-def split_dataset(celeba_hq_dir, data_dir):
+def generate_filelist(celeba_hq_dir, data_dir):
     '''
-    Split the whole dataset into train and test part
+    Generate training images filelist
     :param celeba_hq_dir: Directory of Celeba-HQ images
     :param data_dir: Directory to save train and test file list
     :return:
@@ -266,11 +266,7 @@ def split_dataset(celeba_hq_dir, data_dir):
         os.mkdir(data_dir)
 
     with open(os.path.join(data_dir, 'train_list.txt'), 'w') as f:
-        for i in range(int(len(files) * 0.8)):
-            f.write(files[i] + '\n')
-
-    with open(os.path.join(data_dir, 'test_list.txt'), 'w') as f:
-        for i in range(int(len(files) * 0.8), len(files)):
+        for i in range(len(files)):
             f.write(files[i] + '\n')
 
 # -----------------------------------------------------------------------------
@@ -317,8 +313,8 @@ def execute_cmdline(argv):
     p.add_argument('--num_threads', help='Number of concurrent threads (default: 4)', type=int, default=4)
     p.add_argument('--num_tasks', help='Number of concurrent processing tasks (default: 100)', type=int, default=100)
 
-    p = add_command('split_dataset', 'Split Celeba-HQ dataset into train and test part.',
-                     'split_dataset Celeba-HQ/ data/')
+    p = add_command('generate_filelist', 'Generate training images filelist.',
+                     'generate_filelist Celeba-HQ/ data/')
     p.add_argument('celeba_hq_dir', help='Directory to read CelebA-HQ data from')
     p.add_argument('data_dir', help='Directory to write train and test file list')
 

@@ -13,14 +13,14 @@ from os.path import exists, join
 
 from model.pggan import Generator, Discriminator
 from model.loss import GANLoss, GradientPenaltyLoss
-from dataloader.dataset import TrainDataset
+from dataloader.dataset import TrainDataset, TestDataset
 from utils.util import save_result
 
 
 def train(config):
     print(config)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
@@ -74,6 +74,13 @@ def train(config):
     optimG = torch.optim.Adam(params=generator.parameters(), lr=lr)
     optimD = torch.optim.Adam(params=discriminator.parameters(), lr=lr)
 
+    if config.phase == 'fadein':
+        alpha = 0.1
+        start_train_point = 1
+        epoch_length = config.epochs // 10
+    elif config.phase == 'stabilize':
+        alpha = 1.0
+
     for epoch in range(1 + config.start_idx, config.epochs + 1):
 
         for i, data in enumerate(tqdm(train_loader)):
@@ -81,20 +88,25 @@ def train(config):
             noises = data['noise'].float().to(device)
 
             optimG.zero_grad()
-            fake_images = generator(noises, alpha=config.alpha)
-            fake_labels = discriminator(fake_images, alpha=config.alpha)
+            fake_images = generator(noises, alpha)
+            fake_labels = discriminator(fake_images, alpha)
             gan_loss = ganLoss(fake_labels, True)
             gan_loss.backward()
             optimG.step()
 
             optimD.zero_grad()
-            dis_loss = ganLoss(discriminator(real_images, alpha=config.alpha), True) + \
-                       ganLoss(discriminator(fake_images.detach(), alpha=config.alpha), False)
+            dis_loss = ganLoss(discriminator(real_images, alpha), True) + \
+                       ganLoss(discriminator(fake_images.detach(), alpha), False)
             if config.gan_type == 'wgangp':
                 gp_loss = gpLoss(discriminator, real_images, fake_images.detach())
                 dis_loss = dis_loss + config.l_gp * gp_loss
             dis_loss.backward()
             optimD.step()
+
+            if config.phase == 'fadein':
+                if epoch > epoch_length * start_train_point:
+                    start_train_point += 1
+                    alpha += 0.1
 
             if i % 500 == 0:
                 if config.gan_type == 'wgangp':
@@ -106,11 +118,13 @@ def train(config):
 
                 if config.output_act == 'tanh':
                     fake_images = (fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1)) + 1.) * 0.5
+                    real_images = (real_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1)) + 1.) * 0.5
                 else:
                     fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
-                real_images = real_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
+                    real_images = real_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
                 save_result(rows=2, cols=3, images=fake_images,
-                            result_file=join(config.result_path, "fake-epoch-%d-step-%d.png" % (epoch, i)))
+                            result_file=join(config.result_path, "fake-epoch-%d-step-%d-alpha-%.1f.png" %
+                                             (epoch, i, alpha)))
                 save_result(rows=2, cols=3, images=real_images,
                             result_file=join(config.result_path, "real-epoch-%d-step-%d.png" % (epoch, i)))
 
@@ -141,13 +155,8 @@ def test(config):
     if not exists(join(config.result_path, 'test-%d' % config.test_epoch)):
         os.makedirs(join(config.result_path, 'test-%d' % config.test_epoch))
 
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-
-    test_dataset = TrainDataset(config.celeba_hq_dir, config.test_file, resolution=config.resolution,
-                                 transform=test_transform)
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
+    test_dataset = TestDataset()
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, num_workers=1)
 
     generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm, device=device).to(device)
 
@@ -161,7 +170,7 @@ def test(config):
 
     for i, data in enumerate(tqdm(test_loader)):
         noises = data['noise'].float().to(device)
-        fake_images = generator(noises, alpha=config.alpha)
+        fake_images = generator(noises, alpha=1.0)
 
         if config.output_act == 'tanh':
             fake_images = (fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1)) + 1.) * 0.5
@@ -171,16 +180,12 @@ def test(config):
         save_result(rows=2, cols=3, images=fake_images,
                     result_file=join(config.result_path, 'test-%d' % config.test_epoch, "fake-%d.png" % i))
 
-        if i > 50:
-            break
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--celeba_hq_dir', type=str, default='/media/liuwq/data/Dataset/Celeba/Celeba-HQ')
     parser.add_argument('--train_file', type=str, default='data/train_list.txt')
-    parser.add_argument('--test_file', type=str, default='data/test_list.txt')
     parser.add_argument('--ckpt_path', type=str, default='ckpt/reso-4x4/')
     parser.add_argument('--result_path', type=str, default='result/reso-4x4/')
 
@@ -191,7 +196,7 @@ if __name__ == '__main__':
     parser.add_argument('--gan_type', type=str, default='vanilla')
     parser.add_argument('--l_gp', type=float, default=10.)
     parser.add_argument('--resolution', type=int, default=4)
-    parser.add_argument('--alpha', type=float, default=1.0)
+    # parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--norm', type=str, default='pixelnorm')
     parser.add_argument('--output_act', type=str, default='linear')
 
@@ -202,11 +207,11 @@ if __name__ == '__main__':
     parser.add_argument('--load_G', type=str, default=None)
     parser.add_argument('--load_D', type=str, default=None)
 
-    parser.add_argument('--phase', type=str, default='train')
+    parser.add_argument('--phase', type=str, default='fadein')
 
     config = parser.parse_args()
 
-    if config.phase == 'train':
+    if config.phase == 'fadein' or config.phase == 'stabilize':
         train(config)
     elif config.phase == 'test':
         test(config)

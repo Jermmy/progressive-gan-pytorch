@@ -35,3 +35,19 @@ class TrainDataset(data.Dataset):
 
         return sample
 
+
+class TestDataset(data.Dataset):
+
+    def __init__(self, test_num=100):
+        self.test_num = test_num
+
+    def __len__(self):
+        return self.test_num
+
+    def __getitem__(self, idx):
+        noise = torch.randn(512, 1, 1)
+
+        sample = {'noise': noise}
+
+        return sample
+

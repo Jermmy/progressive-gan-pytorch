@@ -63,7 +63,7 @@ class Generator(nn.Module):
         state_dict = self.state_dict()
         for k, v in pretrained_dict.items():
             state_dict[k] = v
-            print('load: ', k)
+            # print('load: ', k)
         self.load_state_dict(state_dict)
 
     def save_model(self, model_file):
@@ -90,31 +90,18 @@ class Discriminator(nn.Module):
         # 512x512 --> 4x4
         for level in range(self.R, 2, -1):
             ic, oc = self.get_channel_num(level), self.get_channel_num(level - 1)
-            # if level == 3:
-            #     self.minibatchStddevLayer = MinibatchStatConcatLayer()
-                # self.baseBlocks.append(MinibatchStatConcatLayer())
-                # self.baseBlocks.append(DBaseBlock(ic + 1, oc, device=device))
-                # self.baseBlocks.append(DBaseBlock(ic, oc))
-
-            # self.baseBlocks.append(DBaseBlock(ic, oc, device=device))
             # Insert small resolution layer in the front
             self.baseBlocks.insert(0, DBaseBlock(ic, oc, device=device))
             # Keep FromRgbLayer for model of each resolution
-            # self.fromRgbLayers.append(FromRgbLayer(ic, device=device))
-            self.fromRgbLayers.insert(0, FromRgbLayer(ic, device=device))
+            self.fromRgbLayers.insert(0, FromRgbLayer(oc, device=device))
 
-        # if self.minibatchStddevLayer != None:
-        #     self.baseBlocks.append(DBaseBlock(513, 512, kernel_size=4, padding=0, downsample=False, device=device))
-        # else:
-        #     self.baseBlocks.append(DBaseBlock(512, 512, kernel_size=4, padding=0, downsample=False, device=device))
-        # self.baseBlocks.insert(0, MinibatchStatConcatLayer())
-        # self.baseBlocks.insert(0, DBaseBlock(513, 512, kernel_size=4, padding=0, downsample=False, device=device))
         self.baseBlocks.insert(0, nn.Sequential(
             MinibatchStatConcatLayer(),
             DBaseBlock(513, 512, kernel_size=4, padding=0, downsample=False, device=device)
         ))
         self.linear = nn.Linear(512, 1)
 
+        print(self.fromRgbLayers)
 
     def get_channel_num(self, level):
         '''
@@ -149,7 +136,7 @@ class Discriminator(nn.Module):
         state_dict = self.state_dict()
         for k, v in pretrained_dict.items():
             state_dict[k] = v
-            print('load: ', k)
+            # print('load: ', k)
         self.load_state_dict(state_dict)
 
     def save_model(self, model_file):
