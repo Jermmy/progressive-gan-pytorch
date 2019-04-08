@@ -34,6 +34,8 @@ class Generator(nn.Module):
             # Keep ToRgbLayer for model of each resolution
             self.toRgbLayers.append(ToRgbLayer(oc, nonlinearity=output_act, device=device))
 
+        print(self)
+
     def get_channel_num(self, level):
         '''
         16384: 2^(10+4)
@@ -101,7 +103,7 @@ class Discriminator(nn.Module):
         ))
         self.linear = nn.Linear(512, 1)
 
-        print(self.fromRgbLayers)
+        print(self)
 
     def get_channel_num(self, level):
         '''

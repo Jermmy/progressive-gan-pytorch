@@ -7,6 +7,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import numpy as np
 import cv2
+import json
 import argparse
 import os
 from os.path import exists, join
@@ -20,7 +21,8 @@ from utils.util import save_result
 def train(config):
     print(config)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+    if config.device_id:
+        os.environ['CUDA_VISIBLE_DEVICES'] = config.device_id
 
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
@@ -62,24 +64,47 @@ def train(config):
             generator.load_model(config.load_G)
         else:
             generator.load_model(config.load_G, map_location='cpu')
+        print('Loading %s' % config.load_G)
 
     if config.load_D:
         if torch.cuda.is_available():
             discriminator.load_model(config.load_D)
         else:
             discriminator.load_model(config.load_D, map_location='cpu')
+        print('Loading %s' % config.load_D)
 
-    lr = config.lr
+    g_lr = config.g_lr
+    d_lr = config.d_lr
 
-    optimG = torch.optim.Adam(params=generator.parameters(), lr=lr)
-    optimD = torch.optim.Adam(params=discriminator.parameters(), lr=lr)
+    optimG = torch.optim.Adam(params=generator.parameters(), lr=g_lr)
+    optimD = torch.optim.Adam(params=discriminator.parameters(), lr=d_lr)
+
+    # Loading config from last training
+    if config.start_idx > 0:
+        with open(join(config.result_path, 'config-%d.json' % config.start_idx), 'r') as f:
+            temp_data = json.load(f)
+            alpha = temp_data['alpha']
+            start_train_point = temp_data['start_train_point']
+            g_lr = temp_data['g_lr']
+            d_lr = temp_data['d_lr']
 
     if config.phase == 'fadein':
-        alpha = 0.1
-        start_train_point = 1
+        if config.start_idx > 0:
+            alpha = temp_data['alpha']
+            start_train_point = temp_data['start_train_point']
+            g_lr = temp_data['g_lr']
+            d_lr = temp_data['d_lr']
+        else:
+            # alpha: [0, 0.9]
+            alpha = 0.0
+            start_train_point = 1
         epoch_length = config.epochs // 10
     elif config.phase == 'stabilize':
+        if config.start_idx > 0:
+            g_lr = temp_data['g_lr']
+            d_lr = temp_data['d_lr']
         alpha = 1.0
+        start_train_point = 0
 
     for epoch in range(1 + config.start_idx, config.epochs + 1):
 
@@ -134,14 +159,24 @@ def train(config):
                 if config.gan_type == 'wgangp':
                     writer.add_scalars('loss', {'gp': gp_loss.item()}, (epoch-1)*len(train_loader) + i)
 
+        with open(join(config.result_path, 'config-%d.json' % epoch), 'w') as f:
+            temp_data = {
+                'alpha': alpha,
+                'start_train_point': start_train_point,
+                'g_lr': g_lr,
+                'd_lr': d_lr,
+            }
+            json.dump(temp_data, f)
+
         if epoch % 4 == 0:
             generator.save_model(join(config.ckpt_path, 'G-epoch-%d.pkl' % epoch))
             discriminator.save_model(join(config.ckpt_path, 'D-epoch-%d.pkl' % epoch))
 
-        if epoch % 20 == 0:
-            lr *= 0.1
-            optimG = torch.optim.Adam(params=generator.parameters(), lr=lr)
-            optimD = torch.optim.Adam(params=discriminator.parameters(), lr=lr)
+        if epoch % 15 == 0:
+            g_lr *= 0.1
+            d_lr *= 0.1
+            optimG = torch.optim.Adam(params=generator.parameters(), lr=g_lr)
+            optimD = torch.optim.Adam(params=discriminator.parameters(), lr=d_lr)
 
     writer.export_scalars_to_json(join(config.result_path, 'scalars.json'))
     writer.close()
@@ -184,14 +219,16 @@ def test(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--device_id', type=str, default=None)
     parser.add_argument('--celeba_hq_dir', type=str, default='/media/liuwq/data/Dataset/Celeba/Celeba-HQ')
     parser.add_argument('--train_file', type=str, default='data/train_list.txt')
     parser.add_argument('--ckpt_path', type=str, default='ckpt/reso-4x4/')
     parser.add_argument('--result_path', type=str, default='result/reso-4x4/')
 
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--num_workers', type=int, default=4)
-    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--num_workers', type=int, default=0)
+    parser.add_argument('--g_lr', type=float, default=1e-3)
+    parser.add_argument('--d_lr', type=float, default=1e-3)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--gan_type', type=str, default='vanilla')
     parser.add_argument('--l_gp', type=float, default=10.)

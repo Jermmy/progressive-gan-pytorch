@@ -1,56 +1,36 @@
-# celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-128x128
+# celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-512x512
 celeba_hq_dir=Celeba-128x128
 
-# 1: lsgan+linear  2: lsgan+tanh  3: wgangp+linear  4: wgangp+tanh
+# 1: lsgan+tanh 2: wgangp+tanh
 exp=2
 if [ $exp == 1 ]; then
-    lr=1e-4
-    resolution=32
-    epochs=80
-    gan_type=lsgan
-    norm=pixelnorm
-    output_act=linear
-    start_idx=0
-    test_epoch=40
-    load_reso=32
-    load_phase=stabilize
-    l_gp=1.
-elif [ $exp == 2 ]; then
-    lr=1e-3
-    resolution=8
-    epochs=80
+    g_lr=1e-3
+    d_lr=1e-3
+    resolution=512
+    epochs=40
     gan_type=lsgan
     norm=pixelnorm
     output_act=tanh
-    start_idx=0
-    test_epoch=40
-    load_reso=4
+    start_idx=20
+    test_epoch=20
+    load_reso=512
     load_phase=stabilize
     l_gp=1.
-elif [ $exp == 3 ]; then
-    lr=1e-4
+    device_id=1
+elif [ $exp == 2 ]; then
+    g_lr=1e-4
+    d_lr=1e-4
     resolution=16
-    epochs=80
-    gan_type=wgangp
-    l_gp=5.
-    norm=pixelnorm
-    output_act=linear
-    start_idx=40
-    test_epoch=40
-    load_phase=stabilize
-    load_reso=16
-elif [ $exp == 4 ]; then
-    lr=1e-4
-    resolution=4
     epochs=40
     gan_type=wgangp
-    l_gp=1.
+    l_gp=10.
     norm=pixelnorm
     output_act=tanh
     start_idx=0
     test_epoch=40
     load_phase=stabilize
-    load_reso=4
+    load_reso=8
+    device_id=1
 fi
 
 if [ $resolution == '256' ]; then
@@ -79,8 +59,14 @@ if [ $phase == "test" ]; then
     load_G=${ckpt_path}/G-epoch-${test_epoch}.pkl
 fi
 
-python train.py --celeba_hq_dir ${celeba_hq_dir} --lr ${lr} --batch_size ${batch_size} \
-                --epochs ${epochs} --gan_type ${gan_type} --l_gp ${l_gp} \
+python train.py --celeba_hq_dir ${celeba_hq_dir} \
+                --g_lr ${g_lr} \
+                --d_lr ${d_lr} \
+                --batch_size ${batch_size} \
+                --epochs ${epochs} \
+                --gan_type ${gan_type} \
+                --l_gp ${l_gp} \
+                --device_id ${device_id} \
                 --resolution ${resolution} \
                 --norm ${norm} \
                 --output_act ${output_act} \
