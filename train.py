@@ -172,7 +172,7 @@ def train(config):
             generator.save_model(join(config.ckpt_path, 'G-epoch-%d.pkl' % epoch))
             discriminator.save_model(join(config.ckpt_path, 'D-epoch-%d.pkl' % epoch))
 
-        if epoch % 15 == 0:
+        if epoch % 20 == 0:
             g_lr *= 0.1
             d_lr *= 0.1
             optimG = torch.optim.Adam(params=generator.parameters(), lr=g_lr)

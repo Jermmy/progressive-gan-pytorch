@@ -18,18 +18,18 @@ if [ $exp == 1 ]; then
     l_gp=1.
     device_id=1
 elif [ $exp == 2 ]; then
-    g_lr=1e-4
-    d_lr=1e-4
+    g_lr=1e-5
+    d_lr=1e-5
     resolution=16
     epochs=40
     gan_type=wgangp
-    l_gp=10.
+    l_gp=1
     norm=pixelnorm
     output_act=tanh
     start_idx=0
-    test_epoch=40
-    load_phase=stabilize
-    load_reso=8
+    test_epoch=36
+    load_phase=fadein
+    load_reso=16
     device_id=1
 fi
 
@@ -44,12 +44,12 @@ else
 fi
 
 
-# phase=stabilize
-phase=fadein
+phase=stabilize
+# phase=fadein
 # phase=test
 
-ckpt_path=ckpt/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
-result_path=result/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
+ckpt_path=/media/liuwq/data/Dataset/Celeba/ckpt/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
+result_path=/media/liuwq/data/Dataset/Celeba/result/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
 
 load_G=ckpt/reso-${load_reso}x${load_reso}/${load_phase}_${gan_type}_${norm}_${output_act}/G-epoch-${test_epoch}.pkl
 load_D=ckpt/reso-${load_reso}x${load_reso}/${load_phase}_${gan_type}_${norm}_${output_act}/D-epoch-${test_epoch}.pkl
