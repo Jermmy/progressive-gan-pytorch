@@ -1,18 +1,18 @@
-# celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-512x512
-celeba_hq_dir=Celeba-128x128
+celeba_hq_dir=/media/liuwq/data/Dataset/Celeba/Celeba-512x512
+# celeba_hq_dir=Celeba-128x128
 
 # 1: lsgan+tanh 2: wgangp+tanh
-exp=2
+exp=1
 if [ $exp == 1 ]; then
     g_lr=1e-3
     d_lr=1e-3
-    resolution=512
+    resolution=128
     epochs=40
     gan_type=lsgan
     norm=pixelnorm
     output_act=tanh
-    start_idx=20
-    test_epoch=20
+    start_idx=0
+    test_epoch=0
     load_reso=512
     load_phase=stabilize
     l_gp=1.
@@ -43,13 +43,19 @@ else
     batch_size=16
 fi
 
+progress=False
 
 phase=stabilize
 # phase=fadein
 # phase=test
 
-ckpt_path=/media/liuwq/data/Dataset/Celeba/ckpt/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
-result_path=/media/liuwq/data/Dataset/Celeba/result/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
+if [ $progress == 'True' ]; then
+    ckpt_path=/media/liuwq/data/Dataset/Celeba/ckpt/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
+    result_path=/media/liuwq/data/Dataset/Celeba/result/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
+else
+    ckpt_path=/media/liuwq/data/Dataset/Celeba/ckpt/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}_nonpro
+    result_path=/media/liuwq/data/Dataset/Celeba/result/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}_nonpro    
+fi
 
 load_G=ckpt/reso-${load_reso}x${load_reso}/${load_phase}_${gan_type}_${norm}_${output_act}/G-epoch-${test_epoch}.pkl
 load_D=ckpt/reso-${load_reso}x${load_reso}/${load_phase}_${gan_type}_${norm}_${output_act}/D-epoch-${test_epoch}.pkl
@@ -75,5 +81,5 @@ python train.py --celeba_hq_dir ${celeba_hq_dir} \
                 --phase ${phase} \
                 --ckpt_path ${ckpt_path} \
                 --result_path ${result_path} \
-                --load_G ${load_G} \
-                --load_D ${load_D}
+                # --load_G ${load_G} \
+                # --load_D ${load_D}
