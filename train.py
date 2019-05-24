@@ -191,7 +191,7 @@ def test(config):
         os.makedirs(join(config.result_path, 'test-%d' % config.test_epoch))
 
     test_dataset = TestDataset()
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, num_workers=1)
+    test_loader = DataLoader(test_dataset, batch_size=config.rows * config.cols, num_workers=1)
 
     generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm, device=device).to(device)
 
@@ -212,7 +212,7 @@ def test(config):
         else:
             fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
 
-        save_result(rows=2, cols=3, images=fake_images,
+        save_result(rows=config.rows, cols=config.cols, images=fake_images,
                     result_file=join(config.result_path, 'test-%d' % config.test_epoch, "fake-%d.png" % i))
 
 
@@ -243,6 +243,10 @@ if __name__ == '__main__':
 
     parser.add_argument('--load_G', type=str, default=None)
     parser.add_argument('--load_D', type=str, default=None)
+
+    # =========== for testing ==========================
+    parser.add_argument('--rows', type=int, default=2)
+    parser.add_argument('--cols', type=int, default=2)
 
     parser.add_argument('--phase', type=str, default='fadein')
 
