@@ -190,7 +190,7 @@ def test(config):
     if not exists(join(config.result_path, 'test-%d' % config.test_epoch)):
         os.makedirs(join(config.result_path, 'test-%d' % config.test_epoch))
 
-    test_dataset = TestDataset()
+    test_dataset = TestDataset(test_num=2 * config.rows * config.cols)
     test_loader = DataLoader(test_dataset, batch_size=config.rows * config.cols, num_workers=1)
 
     generator = Generator(resolution=config.resolution, output_act=config.output_act, norm=config.norm, device=device).to(device)
@@ -208,9 +208,9 @@ def test(config):
         fake_images = generator(noises, alpha=1.0)
 
         if config.output_act == 'tanh':
-            fake_images = (fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1)) + 1.) * 0.5
+            fake_images = (fake_images.detach().cpu().numpy()[0: config.rows * config.cols].transpose((0, 2, 3, 1)) + 1.) * 0.5
         else:
-            fake_images = fake_images.detach().cpu().numpy()[0:6].transpose((0, 2, 3, 1))
+            fake_images = fake_images.detach().cpu().numpy()[0: config.rows * config.cols].transpose((0, 2, 3, 1))
 
         save_result(rows=config.rows, cols=config.cols, images=fake_images,
                     result_file=join(config.result_path, 'test-%d' % config.test_epoch, "fake-%d.png" % i))

@@ -60,6 +60,7 @@ fi
 load_G=ckpt/reso-${load_reso}x${load_reso}/${load_phase}_${gan_type}_${norm}_${output_act}/G-epoch-${test_epoch}.pkl
 load_D=ckpt/reso-${load_reso}x${load_reso}/${load_phase}_${gan_type}_${norm}_${output_act}/D-epoch-${test_epoch}.pkl
 
+
 if [ $phase == "test" ]; then
     load_phase=stabilize
     load_G=${ckpt_path}/G-epoch-${test_epoch}.pkl
@@ -81,5 +82,5 @@ python train.py --celeba_hq_dir ${celeba_hq_dir} \
                 --phase ${phase} \
                 --ckpt_path ${ckpt_path} \
                 --result_path ${result_path} \
-                # --load_G ${load_G} \
-                # --load_D ${load_D}
+                --load_G ${load_G} \
+                --load_D ${load_D}
