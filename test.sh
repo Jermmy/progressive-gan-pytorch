@@ -6,7 +6,7 @@ exp=1
 if [ $exp == 1 ]; then
     g_lr=1e-3
     d_lr=1e-3
-    resolution=32
+    resolution=512
     epochs=40
     gan_type=lsgan
     norm=pixelnorm
@@ -39,8 +39,8 @@ else
     batch_size=16
 fi
 
-rows=4
-cols=8
+rows=1
+cols=3
 
 test_epoch=40
 
