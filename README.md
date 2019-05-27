@@ -12,7 +12,7 @@ Borrow code from [PyTorch-progressive_growing_of_gans](https://github.com/github
 
 Download the original CelebA dataset from [here]([http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)) and additional deltas files from [here](https://drive.google.com/drive/folders/0B4qLcYyJmiz0TXY1NG02bzZVRGs). Unzip them, then you can generate CelebA-HQ dataset using `dataset_tools.py`:
 
-```python
+```shell
 python dataset_tools.py create_celeba_hq Celeba-HQ ~/celeba ~/celeba-hq-deltas
 ```
 
@@ -20,7 +20,7 @@ The CelebA-HQ dataset will be placed in folder `Celeba-HQ`.
 
 To ease image reading, I generate a file list for all training images:
 
-``` python
+``` shell
 python dataset_tools.py generate_filelist Celeba-HQ/ data/
 ```
 
@@ -28,7 +28,7 @@ The file list will be generated in folder `data`.
 
 ## Training
 
-```python
+```shell
 celeba_hq_dir=Celeba-HQ
 g_lr=1e-3
 d_lr=1e-3
@@ -37,20 +37,13 @@ epochs=40
 gan_type=lsgan
 norm=pixelnorm
 output_act=tanh
-start_idx=0
-test_epoch=0
+start_idx=0  # start epoch
 l_gp=1.
-device_id=0
+device_id=0  # GPU id
+batch_size=16
 
-if [ $resolution == '256' ]; then
-    batch_size=14
-elif [ $resolution == '512' ]; then
-    batch_size=6
-elif [ $resolution == '1024' ]; then
-    batch_size=3
-else
-    batch_size=16
-fi
+phase=stabilize
+# phase=fadein
 
 ckpt_path=ckpt/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
 result_path=result/reso-${resolution}x${resolution}/${phase}_${gan_type}_${norm}_${output_act}
@@ -67,13 +60,12 @@ python train.py --celeba_hq_dir ${celeba_hq_dir} \
                 --norm ${norm} \
                 --output_act ${output_act} \
                 --start_idx ${start_idx} \
-                --test_epoch ${test_epoch} \
                 --phase ${phase} \
                 --ckpt_path ${ckpt_path} \
                 --result_path ${result_path} 
 ```
 
-##Result 
+## Result 
 
 Currently, I have only run out some results using LsGAN. For WGAN-GP, the results are very bad and I still don't know why.
 
