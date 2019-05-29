@@ -10,7 +10,7 @@ Borrow code from [PyTorch-progressive_growing_of_gans](https://github.com/github
 
 ## Dataset
 
-Download the original CelebA dataset from [here]([http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)) and additional deltas files from [here](https://drive.google.com/drive/folders/0B4qLcYyJmiz0TXY1NG02bzZVRGs). Unzip them, then you can generate CelebA-HQ dataset using `dataset_tools.py`:
+Download the original CelebA dataset from [here](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) and additional deltas files from [here](https://drive.google.com/drive/folders/0B4qLcYyJmiz0TXY1NG02bzZVRGs). Unzip them, then you can generate CelebA-HQ dataset using `dataset_tools.py`:
 
 ```shell
 python dataset_tools.py create_celeba_hq Celeba-HQ ~/celeba ~/celeba-hq-deltas
